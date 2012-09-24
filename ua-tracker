@@ -81,6 +81,20 @@ class Cache(object):
     def __contains__(self, package):
         return package in self._data
 
+    def print_contents(self):
+        contents = collections.defaultdict(set)
+        for package, paths in self._data.items():
+            for path in paths:
+                path = path.lstrip('/')
+                contents[path].add(package)
+        max_path_len = max(map(len, contents))
+        print('FILE'.ljust(max_path_len), 'LOCATION')
+        for path, packages in sorted(contents.items()):
+            print(
+                path.ljust(max_path_len),
+                ','.join('alt/{}'.format(p) for p in sorted(packages))
+            )
+
 def test_package(package, *, cache, chroot):
     print(package, end=': ', file=sys.stderr)
     sys.stderr.flush()
@@ -119,6 +133,7 @@ def main():
     cache = Cache(options.cache)
     for package in options.packages:
         test_package(package, cache=cache, chroot=options.chroot)
+    cache.print_contents()
 
 if __name__ == '__main__':
     main()
