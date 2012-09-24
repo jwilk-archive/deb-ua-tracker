@@ -26,9 +26,10 @@ install_template = '''
 set -e
 dpkg-divert --local --rename --add /usr/bin/update-alternatives
 cat > /usr/bin/update-alternatives
-rm /var/lib/dpkg/alternatives/*
 chmod 755 /usr/bin/update-alternatives
 export DEBIAN_FRONTEND=noninteractive
+apt-get install -qq --no-install-recommends --no-install-suggests -y --reinstall '{package}'
+rm /var/lib/dpkg/alternatives/*
 apt-get install -qq --no-install-recommends --no-install-suggests -y --reinstall '{package}'
 '''
 
