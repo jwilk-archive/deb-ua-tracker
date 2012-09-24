@@ -1,0 +1,125 @@
+#!/usr/bin/python3
+
+import argparse
+import collections
+import errno
+import os
+import re
+import subprocess as ipc
+import sys
+import tempfile
+
+update_alternatives_diversion = b'''
+#!/bin/sh
+mkdir -p /var/spool/alternatives-monitor/
+ls /var/lib/dpkg/alternatives/* | xargs -n1 sed -n -e '0,/^$/ { /^[/]/p }' | sort -u > /var/spool/alternatives-monitor/before
+/usr/bin/update-alternatives.distrib "$@"
+exitcode=$?
+ls /var/lib/dpkg/alternatives/* | xargs -n1 sed -n -e '0,/^$/ { /^[/]/p }' | sort -u > /var/spool/alternatives-monitor/after
+diff /var/spool/alternatives-monitor/before /var/spool/alternatives-monitor/after \
+| grep '^[<>]' \
+| sed -e "s/^/alternatives-monitor: $DPKG_MAINTSCRIPT_PACKAGE: /"
+exit $exitcode
+'''
+
+install_template = '''
+set -e
+dpkg-divert --local --rename --add /usr/bin/update-alternatives
+cat > /usr/bin/update-alternatives
+rm /var/lib/dpkg/alternatives/*
+chmod 755 /usr/bin/update-alternatives
+export DEBIAN_FRONTEND=noninteractive
+apt-get install -qq --no-install-recommends --no-install-suggests -y --reinstall '{package}'
+'''
+
+class Cache(object):
+
+    def __init__(self, storage_path=None):
+        self._storage_path = storage_path
+        self._data = collections.defaultdict(set)
+        if storage_path is not None:
+            try:
+                storage = open(storage_path, 'rt', encoding='ASCII')
+            except OSError as exc:
+                if exc.errno == errno.ENOENT:
+                    return
+                raise
+            with storage:
+                for line in storage:
+                    package, path = line.split()
+                    if path.startswith('*'):
+                        path = None
+                    self.add(package, path)
+
+    def add(self, package, path=None):
+        pkgdata = self._data[package]
+        if path is None:
+            return
+        if path in pkgdata:
+            pass
+        else:
+            pkgdata.add(path)
+
+    def save(self):
+        if self._storage_path is None:
+            return
+        tmp = tempfile.NamedTemporaryFile(
+            mode='w+t', encoding='ASCII',
+            prefix=os.path.basename(self._storage_path) + '.', suffix='.tmp',
+            dir=os.path.dirname(self._storage_path),
+            delete=False
+        )
+        for package, paths in sorted(self._data.items()):
+            for path in sorted(paths):
+                print(package, path, file=tmp)
+            if len(paths) == 0:
+                print(package, '*placeholder*', file=tmp)
+        tmp.close()
+        os.rename(tmp.name, self._storage_path)
+
+    def __contains__(self, package):
+        return package in self._data
+
+def test_package(package, *, cache, chroot):
+    print(package, end=': ', file=sys.stderr)
+    sys.stderr.flush()
+    if package in cache:
+        print('(cached)', file=sys.stderr)
+        return
+    schroot = ipc.Popen([
+        'schroot', '-u', 'root', '--directory', '/', '-c', chroot, '--', 'sh', '-c',
+        install_template.format(package=package)
+    ], stdin=ipc.PIPE, stdout=ipc.PIPE, stderr=ipc.STDOUT)
+    schroot.stdin.write(update_alternatives_diversion)
+    schroot.stdin.close()
+    cache.add(package)
+    for line in schroot.stdout:
+        print('.', end='', file=sys.stderr)
+        sys.stderr.flush()
+        if line.startswith(b'alternatives-monitor:'):
+            print('+', end='', file=sys.stderr)
+            sys.stderr.flush()
+            prefix, package, tag, path = line.split()
+            assert tag == b'>', tag
+            alt_package = package.decode('ASCII').rstrip(':')
+            path = path.decode('ASCII')
+            cache.add(alt_package, path)
+    print()
+    if schroot.wait() != 0:
+        raise RuntimeError('{package} failed to install'.format(package=package))
+    cache.save()
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument('--cache', metavar='<file>')
+    ap.add_argument('--chroot', metavar='<chroot>', default='unstable')
+    ap.add_argument('packages', metavar='<package>', nargs='+')
+    options = ap.parse_args()
+    cache = Cache(options.cache)
+    for package in options.packages:
+        test_package(package, cache=cache, chroot=options.chroot)
+
+if __name__ == '__main__':
+    main()
+
+# vim:ts=4 sw=4 et
