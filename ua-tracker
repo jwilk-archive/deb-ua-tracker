@@ -41,7 +41,7 @@ class Cache(object):
         if storage_path is not None:
             try:
                 storage = open(storage_path, 'rt', encoding='ASCII')
-            except OSError as exc:
+            except IOError as exc:
                 if exc.errno == errno.ENOENT:
                     return
                 raise
