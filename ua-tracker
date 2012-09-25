@@ -114,10 +114,10 @@ def test_package(package, *, cache, chroot):
         if line.startswith(b'alternatives-monitor:'):
             print('+', end='', file=sys.stderr)
             sys.stderr.flush()
-            prefix, package, tag, path = line.split()
+            prefix, alt_package, tag, path = line.split()
             if tag != b'>':
                 continue
-            alt_package = package.decode('ASCII').rstrip(':')
+            alt_package = alt_package.decode('ASCII').rstrip(':')
             path = path.decode('ASCII')
             cache.add(alt_package, path)
     print()
