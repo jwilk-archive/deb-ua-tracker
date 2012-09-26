@@ -15,6 +15,7 @@ apt-file.
 
 import argparse
 import collections
+import datetime
 import errno
 import os
 import re
@@ -101,6 +102,8 @@ class Cache(object):
                 path = path.lstrip('/')
                 contents[path].add(package)
         max_path_len = max(map(len, contents))
+        print('Last update: {now}'.format(now=datetime.date.today()))
+        print()
         print('FILE'.ljust(max_path_len), 'LOCATION')
         for path, packages in sorted(contents.items()):
             print(
