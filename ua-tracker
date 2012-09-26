@@ -120,7 +120,7 @@ def test_package(package, *, cache, chroot):
             alt_package = alt_package.decode('ASCII').rstrip(':')
             path = path.decode('ASCII')
             cache.add(alt_package, path)
-    print()
+    print(file=sys.stderr)
     if schroot.wait() != 0:
         raise RuntimeError('{package} failed to install'.format(package=package))
     cache.save()
