@@ -131,9 +131,17 @@ def test_package(package, *, cache, chroot):
     cache.save()
 
 def main():
+    default_chroot = 'unstable'
     ap = argparse.ArgumentParser()
-    ap.add_argument('--cache', metavar='<file>')
-    ap.add_argument('--chroot', metavar='<chroot>', default='unstable')
+    ap.add_argument('--cache', metavar='<file>',
+        help='store partial results in this file; this option is highly recommended'
+    )
+    ap.add_argument('--chroot', metavar='<chroot>', default=default_chroot,
+        help=('use this chroot; '
+        'this MUST be a cloned chroot, because {prog} will make the chroot dirty '
+        '(default: {default})'
+        .format(prog=os.path.basename(sys.argv[0]), default=default_chroot)),
+    )
     ap.add_argument('packages', metavar='<package>', nargs='+')
     options = ap.parse_args()
     cache = Cache(options.cache)
