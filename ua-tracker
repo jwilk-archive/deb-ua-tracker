@@ -121,7 +121,7 @@ def test_package(package, *, cache, chroot):
     ], stdin=ipc.PIPE, stdout=ipc.PIPE, stderr=ipc.STDOUT)
     schroot.stdin.write(update_alternatives_diversion)
     schroot.stdin.close()
-    cache.add(package)
+    finds = []
     for line in schroot.stdout:
         print('.', end='', file=sys.stderr)
         sys.stderr.flush()
@@ -133,11 +133,15 @@ def test_package(package, *, cache, chroot):
                 continue
             alt_package = alt_package.decode('ASCII').rstrip(':')
             path = path.decode('ASCII')
-            cache.add(alt_package, path)
+            finds += [(alt_package, path)]
     print(file=sys.stderr)
     if schroot.wait() != 0:
         raise RuntimeError('{package} failed to install'.format(package=package))
-    cache.save()
+    else:
+        cache.add(package)
+        for pkg, path in finds:
+            cache.add(pkg, path)
+        cache.save()
 
 def main():
     default_chroot = 'unstable'
