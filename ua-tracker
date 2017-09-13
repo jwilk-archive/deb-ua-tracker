@@ -114,7 +114,7 @@ def test_package(package, *, cache, chroot):
     sys.stderr.flush()
     if package in cache:
         print('(cached)', file=sys.stderr)
-        return
+        return True
     schroot = ipc.Popen([
         'schroot', '-u', 'root', '--directory', '/', '-c', chroot, '--', 'sh', '-c',
         install_template.format(package=package)
@@ -134,14 +134,16 @@ def test_package(package, *, cache, chroot):
             alt_package = alt_package.decode('ASCII').rstrip(':')
             path = path.decode('ASCII')
             finds += [(alt_package, path)]
-    print(file=sys.stderr)
     if schroot.wait() != 0:
-        raise RuntimeError('{package} failed to install'.format(package=package))
+        print('E', file=sys.stderr)
+        return False
     else:
+        print(file=sys.stderr)
         cache.add(package)
         for pkg, path in finds:
             cache.add(pkg, path)
         cache.save()
+        return True
 
 def main():
     default_chroot = 'unstable'
@@ -158,9 +160,11 @@ def main():
     ap.add_argument('packages', metavar='<package>', nargs='+')
     options = ap.parse_args()
     cache = Cache(options.cache)
+    ok = True
     for package in options.packages:
-        test_package(package, cache=cache, chroot=options.chroot)
+        ok &= test_package(package, cache=cache, chroot=options.chroot)
     cache.print_contents()
+    sys.exit(not ok)
 
 if __name__ == '__main__':
     main()
