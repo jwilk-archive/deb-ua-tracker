@@ -160,11 +160,15 @@ def main():
     ap.add_argument('packages', metavar='<package>', nargs='+')
     options = ap.parse_args()
     cache = Cache(options.cache)
-    ok = True
+    failed = []
     for package in options.packages:
-        ok &= test_package(package, cache=cache, chroot=options.chroot)
+        if not test_package(package, cache=cache, chroot=options.chroot):
+            failed += [package]
     cache.print_contents()
-    sys.exit(not ok)
+    if failed:
+        print(file=sys.stderr)
+        print('* The following packages could not be installed:', *failed, file=sys.stderr)
+        sys.exit(1)
 
 if __name__ == '__main__':
     main()
