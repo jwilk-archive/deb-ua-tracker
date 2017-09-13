@@ -16,7 +16,6 @@ import collections
 import datetime
 import errno
 import os
-import re
 import subprocess as ipc
 import sys
 import tempfile
