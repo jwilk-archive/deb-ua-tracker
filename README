@@ -1,0 +1,32 @@
+**ua-tracker** test-installs Debian packages to gather information about
+alternatives_ they register.
+
+The output format is the same as for Contents-* files,
+which are used by e.g. apt-file_.
+
+.. _alternatives:
+   https://manpages.debian.org/unstable/dpkg/update-alternatives.1
+
+.. _apt-file:
+   https://packages.debian.org/unstable/apt-file
+
+You will need:
+
+* A chroot manager by schroot_.
+  This *must* be a cloned chroot, because ua-tracker will make the chroot dirty.
+
+.. _schroot:
+   https://packages.debian.org/unstable/schroot
+
+* List of packages that are suspected to register alternatives.
+  (In theory, one could try installing *all* packages, but that would waste
+  a lot of time, since vast majority of packages don't register anything.)
+
+  binarycontrol.debian.net_ can be used to get the candidates.
+
+.. _binarycontrol.debian.net:
+   https://binarycontrol.debian.net/?q=%5Cbupdate-alternatives%5Cb&path=%2Fstretch%2F
+
+* Fast Debian mirror (or alternatively, copious amount of time).
+
+.. vim:ft=rst ts=3 sts=3 sw=3 tw=76 et
