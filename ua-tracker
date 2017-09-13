@@ -99,7 +99,7 @@ class Cache(object):
             for path in paths:
                 path = path.lstrip('/')
                 contents[path].add(package)
-        max_path_len = max(map(len, contents))
+        max_path_len = max(map(len, contents)) if contents else 0
         print('Last update: {now}'.format(now=datetime.date.today()))
         print()
         print('FILE'.ljust(max_path_len), 'LOCATION')
