@@ -12,7 +12,7 @@ which are used by e.g. apt-file_.
 
 You will need:
 
-* A chroot manager by schroot_.
+* A chroot managed by schroot_.
   This *must* be a cloned chroot, because ua-tracker will make the chroot dirty.
 
 .. _schroot:
